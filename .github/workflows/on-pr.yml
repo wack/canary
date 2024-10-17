@@ -1,17 +1,33 @@
-name: "On Push – Validate Build"
-
+name: "On PR | Validate Build"
 on:
-  push:
+  # When a PR is initiated, we want to validate the PR before running
+  # the merge queue.
+  pull_request:
+  # Allow this job to be executed manually from the GH UI.
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Do not change this job's name without also changing "pr-ready"'s
+  # job name in "on-merge.yml". These jobs must have the same name.
+  # See the README for more details.
+  pr-ready:
+    if: always()
+    name: "⚡ PR Ready"
+    runs-on: ubuntu-latest
+    needs:
+    - "build"
+    steps:
+      - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')  || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "One or more dependent jobs failed, was skipped, or was cancelled. All jobs must pass for the PR to be ready."
+          exit 1
+      - run: echo "OK"
+  
   # TODO: Exfiltrate this job into one or more action/jobs so it can be reused
   #       for on-pr and on-merge.
-  # This job installs Cargo Make and Cargo Nextest before running
-  # the CI workflow using Cargo Make. Most of the time, it should
-  # restore Cargo Make and other dependencies from cache.
   build:
     name: Validate Rust Build
     runs-on: ubuntu-latest
