@@ -2,5 +2,30 @@
 name = "canary"
 version = "0.1.0"
 edition = "2021"
+default-run = "canary"
+repository = "https://github.com/wack/canary"
+
+[[bin]]
+name = "canary"
+path = "src/bin/main.rs"
 
 [dependencies]
+# aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+# aws-sdk-s3 = "1.49.0"
+clap = { version = "4.3", features = ["derive"] }
+# console = "0.15.8"
+# dialoguer = "0.11.0"
+# directories = "5.0"
+# indexmap = { version = "2.1.0", features = ["serde"] }
+miette = { version = "7", features = ["fancy"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0.61"
+tokio = { version = "1.37.0", features = ["full"] }
+# toml = { version = "0.8.8", features = ["preserve_order"] }
+# uuid = { version = "1.9", features = ["serde", "v4"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+static_assertions = "1.1"
+
