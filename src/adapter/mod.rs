@@ -2,6 +2,8 @@ use aws_sdk_cloudwatchlogs as cloudwatchlogs;
 use futures_core::stream::Stream;
 use tokio::sync::mpsc::Sender;
 
+use crate::stats::Observation;
+
 pub struct CloudwatchLogsAdapter {
     /// The AWS client for querying Cloudwatch Logs.
     client: Box<dyn ObservationEmitter>,
@@ -41,45 +43,10 @@ impl CloudwatchLogsAdapter {
     }
 }
 
-/// An [Observation] represents a measured outcome that
-/// belongs to either a control group or an experimental
-/// group (i.e. canary).
-pub struct Observation {
-    /// The experimental group or the control group.
-    group: Group,
-    /// The outcome of the observation, by status code.
-    outcome: StatusCategory,
-}
-
-/// The [Group] indicates from whence a given observation
-/// was generated: either by a control group deployment or by
-/// a canary deployment.
-pub enum Group {
-    /// The control group is the current running deployment.
-    Control,
-    /// The experimental group represents the canary deployment.
-    Experimental,
-}
-
-/// [StatusCategory] groups HTTP response status codes according
-/// to five general categories. This type is used as the dependent
-/// variable in statical observations.
-pub enum StatusCategory {
-    // Information responses
-    _1XX,
-    // Successful responses
-    _2XX,
-    // Redirection messages
-    _3XX,
-    // Client error responses
-    _4XX,
-    // Server error responses
-    _5XX,
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::adapter::{Group, Observation, StatusCategory};
+    use crate::adapter::Observation;
+    use crate::stats::{Group, StatusCategory};
 
     use super::{CloudwatchLogsAdapter, ObservationEmitter};
 
