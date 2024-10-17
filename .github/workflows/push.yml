@@ -1,0 +1,49 @@
+name: Rust
+
+on:
+  push:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # This job installs Cargo Make and Cargo Nextest before running
+  # the CI workflow using Cargo Make. Most of the time, it should
+  # restore Cargo Make and other dependencies from cache.
+  build:
+    name: Validate Rust Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the Repo
+        uses: actions/checkout@v4
+
+      - name: "Install Rust (Nightly)"
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt,clippy
+      
+      - name: "Install Rust (Stable)"
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview,rustfmt,clippy
+     
+      - name: "Restore Rust Cache"
+        uses: Swatinem/rust-cache@v2
+      
+      - name: "Install Cargo Tools from Binaries."
+        uses: "taiki-e/install-action@v2"
+        with:
+          tool: "cargo-tarpaulin,cargo-make,cargo-nextest,cargo-llvm-cov"
+
+      - name: "Install Cargo Sort"
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-sort
+
+      - name: "Install Taplo CLI"
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: taplo-cli
+      
+      - name: "Cargo Make"
+        run: cargo make ci-flow

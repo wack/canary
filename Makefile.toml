@@ -1,0 +1,92 @@
+[config]
+default_to_workspace = false
+
+[env]
+CARGO_MAKE_CLIPPY_ARGS = "-- --no-deps"
+CARGO_MAKE_COVERAGE_PROVIDER = "llvm-cov"
+
+[tasks.dev-test-flow]
+dependencies = [
+  "pre-build",
+  "format-flow",
+  "clippy-flow",
+  "build",
+  "post-build",
+  "pre-docs",
+  "docs",
+  "post-docs",
+  "test-flow",
+]
+
+[tasks.pre-build]
+dependencies = [
+  "sort-ci",
+  "format-toml-conditioned-flow",
+  "unused-dependencies-flow",
+]
+
+[tasks.ci-flow]
+dependencies = [
+  "pre-ci-flow",
+  "print-env-flow",
+  "pre-build",
+  "check-format-flow",
+  "clippy-flow",
+  "build",
+  "post-build",
+  "pre-docs",
+  "docs",
+  "post-docs",
+  "test-flow",
+  "coverage-flow",
+  "post-ci-flow",
+]
+
+[tasks.test]
+workspace = true
+description = "Run our test suite"
+command = "cargo"
+args = [ 
+  "nextest", 
+  "run", 
+  "--locked",
+  "@@remove-empty(CARGO_MAKE_CARGO_VERBOSE_FLAGS)", 
+  "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )"
+]
+
+[tasks.help]
+command = "cargo"
+description = "List help text for wack executable"
+category = "Development"
+args = [
+  "run",
+  "@@remove-empty(CARGO_MAKE_CARGO_VERBOSE_FLAGS)", 
+  "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )",
+  "--",
+  "--help"
+]
+
+[tasks.fmt]
+workspace = true
+alias = "format"
+
+[tasks.check-format]
+workspace = true
+
+[tasks.wc]
+description = "Calculate the LoC in src. Require tokei to be installed."
+category = "Development"
+command = "tokei"
+args = [ "." ]
+
+[tasks.sort-ci]
+description = "Assert that Cargo.toml is sorted. Requires cargo-sort to be installed."
+category = "Development"
+command = "cargo"
+args = ["sort", "--check"]
+
+[tasks.sort]
+description = "Sort Cargo.toml. Requires cargo-sort to be installed."
+category = "Development"
+command = "cargo"
+args = ["sort"]
