@@ -13,3 +13,5 @@ mod config;
 /// This is the data pipeline responsible for the control flow
 /// of data from observers into number crunchers.
 mod pipeline;
+/// Our statistics library.
+mod stats;
