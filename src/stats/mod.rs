@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub use chi::EnumerableCategory;
+
 /// The alpha cutoff is the amount of confidence must have in the result
 /// to feel comfortable that the result is not due to chance, but instead
 /// do to the independent variable. The valu is expressed as a confidence
@@ -120,3 +122,8 @@ pub enum StatusCategory {
     // Server error responses
     _5XX,
 }
+
+/// contains the engine to calculate the chi square test statistic.
+mod chi;
+/// contains implementations of contingency tables.
+mod table;
