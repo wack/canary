@@ -20,6 +20,12 @@ pub struct ChiSquareEngine {
     alpha_cutoff: f64,
 }
 
+impl Default for ChiSquareEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ChiSquareEngine {
     pub fn new() -> Self {
         Self {

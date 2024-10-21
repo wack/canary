@@ -42,7 +42,7 @@ pub fn repeat_query<T: Observer>(
         //   be moved between iterations.
         pin!(timer);
         // Each iteration of the loop represents one unit of tiem.
-        while let Some(_) = timer.next().await {
+        while timer.next().await.is_some() {
             // • We perform the query then dump the results into the stream.
             let items = observer.query().await;
             for item in items {
