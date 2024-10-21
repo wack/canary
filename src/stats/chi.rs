@@ -4,32 +4,16 @@ use std::num::NonZeroU64;
 
 use statrs::distribution::{ChiSquared, ContinuousCDF};
 
-/// A ContingencyTable expresses the frequency with which a category was observed.
-/// Usually, it tracks the number of observations in ecah category, but when the
+/// A ContingencyTable expresses the frequency with which a group was observed.
+/// Usually, it tracks the number of observations in ecah group, but when the
 /// number is already known (i.e. its fixed, like a fair dice or coin), it can
-/// expose just the frequencies for each category.
+/// expose just the frequencies for each group.
 pub trait ContingencyTable<Group> {
-    /// return the frequency of the provided category as a number in the range [0, 1].
-    /// If this is an empirical table (i.e. its values were from observations),
-    /// then this is the number of times the category was observed
-    /// divided by the total number of observations.
+    /// return the number of observations of the in the provided group.
     fn group_count(&self, cat: &Group) -> u64;
 
+    /// Return the set of groups that serve as columns of the contingency table.
     fn groups(&self) -> Box<dyn Iterator<Item = Group>>;
-
-    /// returns the number of degrees of freedom for this table.
-    /// This is typically the number of groups minus one.
-    /// # Panics
-    /// This method panics if the number of groups returned by `groups` is less than 2.
-    fn degrees_of_freedom(&self) -> NonZeroU64 {
-        let group_count = self.groups().count() as u64;
-        if group_count < 2 {
-            panic!(
-                "The experiment must have at least two groups. Only {group_count} groups provided"
-            );
-        }
-        NonZeroU64::new(group_count - 1).unwrap()
-    }
 
     // returns the total number of observations made. This should be the sum
     // of the group count for every group.
@@ -37,6 +21,18 @@ pub trait ContingencyTable<Group> {
         self.groups()
             .fold(0, |sum, group| sum + self.group_count(&group))
     }
+}
+
+/// returns the number of degrees of freedom for this table.
+/// This is typically the number of groups minus one.
+/// # Panics
+/// This method panics if the number of groups returned by `groups` is less than 2.
+fn degrees_of_freedom<Cat: EnumerableCategory>(table: &impl ContingencyTable<Cat>) -> NonZeroU64 {
+    let group_count = table.groups().count() as u64;
+    if group_count < 2 {
+        panic!("The experiment must have at least two groups. Only {group_count} groups provided");
+    }
+    NonZeroU64::new(group_count - 1).unwrap()
 }
 
 /// This helper trait identifies a category with a known set of groups.
@@ -105,7 +101,7 @@ where
     /// Returns the number of observations that were classified as
     /// having this group/category.
     pub fn group_count(&self, cat: &C) -> u64 {
-        self.counts[cat] as u64
+        self.counts[cat]
     }
 }
 
@@ -124,10 +120,31 @@ where
     }
 }
 
+/// Alpha represents the alpha cutoff, expressed as a floating point from [0, 1] inclusive.
+/// For example, 0.95 is the standard 5% confidency interval.
+pub fn chi_square_test<Cat>(
+    observed: &impl ContingencyTable<Cat>,
+    expected: &impl ContingencyTable<Cat>,
+    alpha: f64,
+) -> bool
+where
+    Cat: EnumerableCategory + Hash + Eq,
+{
+    assert!(alpha < 1.0);
+    assert_eq!(
+        degrees_of_freedom(observed),
+        degrees_of_freedom(expected),
+        "Expected the degrees of freedom from both groups to be the same."
+    );
+    let stat = test_statistic(expected, observed);
+    let pval = p_value(stat, degrees_of_freedom(observed));
+    pval < alpha
+}
+
 // calculate the chi square test statistic using the provided contingency tables.
 fn test_statistic<Cat: EnumerableCategory + Hash + Eq>(
-    control: impl ContingencyTable<Cat>,
-    experimental: impl ContingencyTable<Cat>,
+    control: &impl ContingencyTable<Cat>,
+    experimental: &impl ContingencyTable<Cat>,
 ) -> f64 {
     // • First, get the set of groups. We can't assume that
     //   both table have the same groups, so we deduplicate them using
@@ -150,8 +167,7 @@ fn test_statistic<Cat: EnumerableCategory + Hash + Eq>(
 fn p_value(test_statistic: f64, degrees_of_freedom: NonZeroU64) -> f64 {
     let freedom = u64::from(degrees_of_freedom) as f64;
     let distribution = ChiSquared::new(freedom).expect("Degrees of freedom must be >= 0");
-    let pval = 1.0 - distribution.cdf(test_statistic);
-    pval
+    1.0 - distribution.cdf(test_statistic)
 }
 
 #[cfg(test)]
@@ -159,7 +175,7 @@ mod tests {
 
     use std::{collections::HashSet, num::NonZeroU64};
 
-    use crate::stats::chi::{p_value, FixedContingencyTable};
+    use crate::stats::chi::{degrees_of_freedom, p_value, FixedContingencyTable};
 
     use super::{test_statistic, ContingencyTable, EnumerableCategory};
     use pretty_assertions::assert_eq;
@@ -200,7 +216,7 @@ mod tests {
             assert_eq!(expected, observed);
         }
         // Demonstrate the number of degrees of freedom matches expectations.
-        assert_eq!(table.degrees_of_freedom(), NonZeroU64::new(1).unwrap());
+        assert_eq!(degrees_of_freedom(&table), NonZeroU64::new(1).unwrap());
     }
 
     /// Scenario: You flip a coin 50 times, and get 21 Heads and 29 Tails.
@@ -214,17 +230,21 @@ mod tests {
         let mut experimental_group = FixedContingencyTable::new();
         experimental_group.set_group_count(true, 21);
         experimental_group.set_group_count(false, 29);
-        let control_degrees = control_group.degrees_of_freedom();
-        let experimental_degrees = experimental_group.degrees_of_freedom();
-        assert_eq!(control_degrees, NonZeroU64::new(1).unwrap());
-        assert_eq!(control_degrees, experimental_degrees);
-        let stat = test_statistic(control_group, experimental_group);
+        assert_eq!(
+            degrees_of_freedom(&control_group),
+            NonZeroU64::new(1).unwrap()
+        );
+        assert_eq!(
+            degrees_of_freedom(&experimental_group),
+            NonZeroU64::new(1).unwrap()
+        );
+        let stat = test_statistic(&control_group, &experimental_group);
         // Round the statistic to two decimal places.
         let observed = (stat * 100.0).round() / 100.0;
         let expected = 1.28;
         assert_eq!(observed, expected);
         // Now, calculate the p-value using the test statistic.
-        let pval = p_value(stat, control_degrees.into());
+        let pval = p_value(stat, degrees_of_freedom(&control_group));
         assert!(0.25 < pval && pval < 0.30);
     }
 }
