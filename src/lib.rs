@@ -14,4 +14,4 @@ mod config;
 /// of data from observers into number crunchers.
 mod pipeline;
 /// Our statistics library.
-mod stats;
+pub mod stats;
