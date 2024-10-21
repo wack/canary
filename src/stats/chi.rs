@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
+use statrs::distribution::{ChiSquared, ContinuousCDF};
+
 /// A ContingencyTable expresses the frequency with which a category was observed.
 /// Usually, it tracks the number of observations in ecah category, but when the
 /// number is already known (i.e. its fixed, like a fair dice or coin), it can
@@ -68,6 +70,7 @@ pub struct FixedContingencyTable<C>
 where
     C: EnumerableCategory + Hash + Eq,
 {
+    // TODO: Use u64 instead of usize.
     counts: HashMap<C, usize>,
 }
 
@@ -142,12 +145,19 @@ fn test_statistic<Cat: EnumerableCategory + Hash + Eq>(
     })
 }
 
+fn p_value(test_statistic: f64, degrees_of_freedom: u64) -> f64 {
+    let distribution =
+        ChiSquared::new(degrees_of_freedom as f64).expect("Degrees of freedom must be >= 0");
+    let pval = 1.0 - distribution.cdf(test_statistic);
+    pval
+}
+
 #[cfg(test)]
 mod tests {
 
     use std::collections::HashSet;
 
-    use crate::stats::chi::FixedContingencyTable;
+    use crate::stats::chi::{p_value, FixedContingencyTable};
 
     use super::{test_statistic, ContingencyTable, EnumerableCategory};
     use pretty_assertions::assert_eq;
@@ -209,5 +219,28 @@ mod tests {
         let observed = (stat * 100.0).round() / 100.0;
         let expected = 1.28;
         assert_eq!(observed, expected);
+    }
+
+    #[test]
+    fn calc_p_value() {
+        // Re-use the scenario from above.
+        // TODO: Deduplicate this code.
+        let mut control_group = FixedContingencyTable::new();
+        control_group.set_group_count(true, 25);
+        control_group.set_group_count(false, 25);
+        let mut experimental_group = FixedContingencyTable::new();
+        experimental_group.set_group_count(true, 21);
+        experimental_group.set_group_count(false, 29);
+        let degrees = experimental_group.degrees_of_freedom();
+        assert_eq!(control_group.degrees_of_freedom(), 1);
+        assert_eq!(experimental_group.degrees_of_freedom(), 1);
+        let stat = test_statistic(control_group, experimental_group);
+        // Round the statistic to two decimal places.
+        let observed = (stat * 100.0).round() / 100.0;
+        let expected = 1.28;
+        assert_eq!(observed, expected);
+        // Now, calculate the p-value using the test statistic.
+        let pval = p_value(stat, degrees as u64);
+        assert!(0.25 < pval && pval < 0.30);
     }
 }
