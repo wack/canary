@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 default-run = "canary"
 repository = "https://github.com/wack/canary"
+description = "A CLI to manage self-promoting canary deployments"
+homepage = "https://multitool.run/"
 
 [[bin]]
 name = "canary"
@@ -35,4 +37,9 @@ tokio-stream = { version = "0.1", features = ["time"] }
 [dev-dependencies]
 pretty_assertions = "1.4"
 static_assertions = "1.1"
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 
