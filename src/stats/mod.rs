@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 pub use chi::EnumerableCategory;
 
+use crate::metrics::ResponseStatusCode;
+
 /// The alpha cutoff is the amount of confidence must have in the result
 /// to feel comfortable that the result is not due to chance, but instead
 /// do to the independent variable. The valu is expressed as a confidence
@@ -57,11 +59,11 @@ impl ChiSquareEngine {
     pub fn calc_test_statistic(&self) -> f64 {
         let mut error = 0.0;
         let categories = [
-            StatusCategory::_1XX,
-            StatusCategory::_2XX,
-            StatusCategory::_3XX,
-            StatusCategory::_4XX,
-            StatusCategory::_5XX,
+            ResponseStatusCode::_1XX,
+            ResponseStatusCode::_2XX,
+            ResponseStatusCode::_3XX,
+            ResponseStatusCode::_4XX,
+            ResponseStatusCode::_5XX,
         ];
         // For each category, we calculate the squared error between the
         // expected and the observed probabilies.
@@ -74,14 +76,14 @@ impl ChiSquareEngine {
     }
 
     /// calculate the expected frequency for this category.
-    fn expected_frequency(&self, category: StatusCategory) -> f64 {
+    fn expected_frequency(&self, category: ResponseStatusCode) -> f64 {
         let observation_count = self.control[&category] as f64;
         let total_count = self.control[&category] as f64;
         observation_count / total_count
     }
 
     /// calculate the observed frequency for this category.
-    fn observed_frequency(&self, category: StatusCategory) -> f64 {
+    fn observed_frequency(&self, category: ResponseStatusCode) -> f64 {
         let observation_count = self.experimental[&category] as f64;
         let total_count = self.experimental[&category] as f64;
         observation_count / total_count
@@ -89,7 +91,7 @@ impl ChiSquareEngine {
 }
 
 /// This type maps the dependent variable to its count.
-pub type ContingencyTable = HashMap<StatusCategory, usize>;
+pub type ContingencyTable = HashMap<ResponseStatusCode, usize>;
 
 /// An [Observation] represents a measured outcome that
 /// belongs to either a control group or an experimental
@@ -98,7 +100,7 @@ pub struct Observation {
     /// The experimental group or the control group.
     pub group: Group,
     /// The outcome of the observation, by status code.
-    pub outcome: StatusCategory,
+    pub outcome: ResponseStatusCode,
 }
 
 /// The [Group] indicates from whence a given observation
@@ -110,23 +112,6 @@ pub enum Group {
     Control,
     /// The experimental group represents the canary deployment.
     Experimental,
-}
-
-/// [StatusCategory] groups HTTP response status codes according
-/// to five general categories. This type is used as the dependent
-/// variable in statical observations.
-#[derive(Hash, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum StatusCategory {
-    // Information responses
-    _1XX,
-    // Successful responses
-    _2XX,
-    // Redirection messages
-    _3XX,
-    // Client error responses
-    _4XX,
-    // Server error responses
-    _5XX,
 }
 
 /// contains the engine to calculate the chi square test statistic.

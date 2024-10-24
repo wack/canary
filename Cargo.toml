@@ -14,8 +14,8 @@ path = "src/bin/main.rs"
 [dependencies]
 async-stream = "0.3.6"
 async-trait = "0.1.83"
-aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
-aws-sdk-cloudwatchlogs = "1.52.0"
+# aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+# aws-sdk-cloudwatchlogs = "1.52.0"
 chrono = "0.4.38"
 clap = { version = "4.3", features = ["derive"] }
 futures-core = "0.3.31"
@@ -42,4 +42,12 @@ static_assertions = "1.1"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+# This enables Clippy lints for the entire crate.
+# Lints that are configurable have their config set in .clippy.toml (currently none)
+# Note that Rustdoc lints can only be configured in source code (see lib.rs)
+# [lints.clippy]
+# pedantic = "deny"
 
+[lints.rust]
+dead_code = "allow"
+unsafe_code = "forbid"

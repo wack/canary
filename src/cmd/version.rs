@@ -9,7 +9,7 @@ pub struct Version;
 
 impl Version {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
     /// Print the version and exit.
