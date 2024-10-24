@@ -1,5 +1,6 @@
 use crate::{
     adapters::{DecisionEngine, Ingress, MockEngine, MockIngress, Monitor},
+    metrics::ResponseStatusCode,
     stats::Observation,
 };
 
@@ -13,6 +14,13 @@ pub async fn setup_pipeline() {
     let _monitor: Option<Box<dyn Monitor<Item = Observation>>> = None;
     // • Repeat for the Ingress and the Engine.
     let _ingress: Box<dyn Ingress> = Box::new(MockIngress);
-    let _engine: Box<dyn DecisionEngine> = Box::new(MockEngine);
+    let _engine: Box<dyn DecisionEngine<ResponseStatusCode>> = Box::new(MockEngine);
+
+    // TODO:
+    // Define the APIs that each of these things use.
+
+    // TODO:
+    // Now that these types are defined, let's wire them together.
+    // The DecisionEngine actor takes a stream of Event batches.
     todo!();
 }

@@ -58,7 +58,8 @@ mod monitors;
 #[cfg(test)]
 mod tests {
     use crate::adapters::Observation;
-    use crate::stats::{Group, StatusCategory};
+    use crate::metrics::ResponseStatusCode;
+    use crate::stats::Group;
 
     use super::{CloudwatchLogs, ObservationEmitter};
 
@@ -70,7 +71,7 @@ mod tests {
         fn emit_next(&mut self) -> Vec<super::Observation> {
             vec![Observation {
                 group: Group::Control,
-                outcome: StatusCategory::_2XX,
+                outcome: ResponseStatusCode::_2XX,
             }]
         }
     }

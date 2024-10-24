@@ -8,6 +8,9 @@ mod adapters;
 mod cmd;
 /// configuration of the CLI, either from the environment of flags.
 mod config;
+/// Contains the definitions of metrics that are valuable to detecting
+/// canary health. Currently, ResponseStatusCode is the only metric of note.
+pub mod metrics;
 mod pipeline;
 /// Our statistics library.
 pub mod stats;
