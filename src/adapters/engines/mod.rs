@@ -8,11 +8,6 @@ pub use action::Action;
 trait HashableCategory: EnumerableCategory + Hash + Eq {}
 impl<T: EnumerableCategory + Hash + Eq> HashableCategory for T {}
 
-// TODO: We probably want to define an "EngineController" type that wraps the execution
-//       of the engine with extra configurables, like "how often do we run the engine"
-//       and "how many samples do we need before we run the engine again?"
-//       The EngineController can also handle the async threading and stream interactions.
-
 /// The decision engine receives observations from the monitor
 /// and determines whether the canary should be promoted, yanked,
 /// or scaled up or down.
@@ -27,18 +22,33 @@ pub trait DecisionEngine<T: HashableCategory> {
     fn compute(&mut self) -> Option<Action>;
 }
 
-pub struct MockEngine;
-impl<T: HashableCategory> DecisionEngine<T> for MockEngine {
-    fn add_observation(&mut self, _: T) {
-        todo!();
-    }
+pub type BoxEngine<T> = Box<dyn DecisionEngine<T>>;
+
+mod action;
+mod controller;
+
+/// The AlwaysPromote decision engine will always return the Promote
+/// action when prompted. It discards all observations.
+#[cfg(test)]
+pub struct AlwaysPromote;
+
+#[cfg(test)]
+impl<T: HashableCategory> DecisionEngine<T> for AlwaysPromote {
+    fn add_observation(&mut self, _: T) {}
 
     fn compute(&mut self) -> Option<Action> {
-        todo!()
+        // true to its name, it will always promote the canary.
+        Some(Action::Promote)
     }
 }
 
-// TODO: maybe this should be a nutype.
-pub type BoxEngine<T: HashableCategory> = Box<dyn DecisionEngine<T>>;
+#[cfg(test)]
+mod tests {
+    use super::DecisionEngine;
+    use crate::metrics::ResponseStatusCode;
+    use static_assertions::assert_obj_safe;
 
-mod action;
+    // We expect the DesignEngine to be boxed, and we expect
+    // it to use response codes as input.
+    assert_obj_safe!(DecisionEngine<ResponseStatusCode>);
+}

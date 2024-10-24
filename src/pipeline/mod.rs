@@ -1,12 +1,17 @@
+#[cfg(test)]
 use crate::{
-    adapters::{DecisionEngine, Ingress, MockEngine, MockIngress, Monitor},
+    adapters::{DecisionEngine, Ingress, MockIngress, Monitor},
     metrics::ResponseStatusCode,
     stats::Observation,
 };
 
+#[cfg(test)]
+use crate::adapters::AlwaysPromote;
+
 // TODO: Add some more structure to this. Right now, I'm
 //       just trying to get the general layout defined and
-//       all of the actors wired up.
+//       all of the actors wired up
+#[cfg(test)]
 pub async fn setup_pipeline() {
     // • First, we create a monitor based on the configuration we've been given.
     //   It must use dynamic dispatch because we're not sure what kind of
@@ -14,7 +19,7 @@ pub async fn setup_pipeline() {
     let _monitor: Option<Box<dyn Monitor<Item = Observation>>> = None;
     // • Repeat for the Ingress and the Engine.
     let _ingress: Box<dyn Ingress> = Box::new(MockIngress);
-    let _engine: Box<dyn DecisionEngine<ResponseStatusCode>> = Box::new(MockEngine);
+    let _engine: Box<dyn DecisionEngine<ResponseStatusCode>> = Box::new(AlwaysPromote);
 
     // TODO:
     // Define the APIs that each of these things use.
