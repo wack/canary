@@ -1,10 +1,13 @@
-use aws_sdk_cloudwatchlogs as cloudwatchlogs;
 use futures_core::stream::Stream;
 use tokio::sync::mpsc::Sender;
 
 use crate::stats::Observation;
 
-pub struct CloudwatchLogsAdapter {
+pub use engines::*;
+pub use ingresses::*;
+pub use monitors::*;
+
+pub struct CloudwatchLogs {
     /// The AWS client for querying Cloudwatch Logs.
     client: Box<dyn ObservationEmitter>,
     outbox: Sender<Observation>,
@@ -18,7 +21,7 @@ pub trait ObservationEmitter: Send + Sync {
     fn emit_next(&mut self) -> Vec<Observation>;
 }
 
-impl CloudwatchLogsAdapter {
+impl CloudwatchLogs {
     /// Create a new [CloudwatchLogsAdapter] using a provided AWS client.
     pub fn new(client: impl ObservationEmitter + 'static) -> impl Stream<Item = Observation> {
         let (outbox, mut inbox) = tokio::sync::mpsc::channel(1024);
@@ -43,12 +46,21 @@ impl CloudwatchLogsAdapter {
     }
 }
 
+/// Contains the trait definition and decision engine implementations.
+/// DecisionEngines are responsible for determining
+/// how much traffic is sent to deployments and when deployments should be yanked or promoted.
+mod engines;
+/// Contains the trait definition and ingress implementations. Ingresses are responsible
+/// for actuating changes to traffic.
+mod ingresses;
+mod monitors;
+
 #[cfg(test)]
 mod tests {
-    use crate::adapter::Observation;
+    use crate::adapters::Observation;
     use crate::stats::{Group, StatusCategory};
 
-    use super::{CloudwatchLogsAdapter, ObservationEmitter};
+    use super::{CloudwatchLogs, ObservationEmitter};
 
     use futures_util::pin_mut;
     use futures_util::StreamExt;
@@ -65,7 +77,7 @@ mod tests {
 
     #[tokio::test]
     async fn smoke_adapter_works() {
-        let event_stream = CloudwatchLogsAdapter::new(FakeObservationEmitter);
+        let event_stream = CloudwatchLogs::new(FakeObservationEmitter);
         pin_mut!(event_stream);
         let mut count = 0;
         while let Some(_) = event_stream.next().await {
